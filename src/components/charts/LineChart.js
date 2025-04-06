@@ -1,5 +1,4 @@
 'use client';
-'use client';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -9,7 +8,8 @@ import {
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js';
 
 ChartJS.register(
@@ -19,21 +19,41 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 export default function SalesChart({ data }) {
+  if (!data || !data.labels || data.labels.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">No chart data available</p>
+      </div>
+    );
+  }
+
   const options = {
     responsive: true,
     plugins: {
       legend: {
         position: 'top',
       },
-      title: {
-        display: true,
-        text: 'Monthly Sales Report',
-      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            return `Sales: $${context.parsed.y.toLocaleString()}`;
+          }
+        }
+      }
     },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          callback: (value) => `$${value.toLocaleString()}`
+        }
+      }
+    }
   };
 
   return <Line options={options} data={data} />;
