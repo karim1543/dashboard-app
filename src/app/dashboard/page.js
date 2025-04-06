@@ -6,50 +6,7 @@ import { db } from '@/lib/firebase/config';
 import SalesChart from '@/components/charts/LineChart';
 import { DataTable } from '@/components/data-table/DataTable';
 import { getAuth ,onAuthStateChanged } from 'firebase/auth';
-const columns = [
-  {
-    accessorKey: 'month',
-    header: 'Month',
-  },
-  {
-    accessorKey: 'sales',
-    header: ({ column }) => (
-      <button
-        className="flex items-center"
-        onClick={() => handleSort('sales')}
-      >
-        Sales ($)
-        {sortField === 'sales' && (
-          <span className="ml-1">
-            {sortDirection === 'asc' ? '↑' : '↓'}
-          </span>
-        )}
-      </button>
-    ),
-    cell: ({ row }) => (
-      <span className="font-medium">
-        {new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD'
-        }).format(row.getValue('sales'))}
-      </span>
-    ),
-  },
-  {
-    accessorKey: 'users',
-    header: 'Active Users',
-  },
-  {
-    accessorKey: 'createdAt',
-    header: 'Date Recorded',
-    cell: ({ row }) => (
-  
-    <span>
-    {row.getValue('createdAt') ? new Date(row.getValue('createdAt')).toDateString() : 'N/A'}
-  </span>
-    ),
-  }
-];
+
 export default function DashboardPage() {
   const [chartData, setChartData] = useState(null);
   const [tableData, setTableData] = useState([]);
@@ -61,8 +18,10 @@ export default function DashboardPage() {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   const lastDocRefs = useRef({});
-  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
-  const [sortField, setSortField] = useState('sales'); // Field to sort by
+  const [sortConfig, setSortConfig] = useState({
+    field: 'createdAt',  // Default sort field
+    direction: 'desc'    // Default sort direction
+  });
   const PAGE_SIZE = 3; // Number of items per page
   useEffect(() => {
     const auth = getAuth();
@@ -84,7 +43,7 @@ export default function DashboardPage() {
           collection(db, 'dashboardData'),
           where('userId', '==', currentUser.uid),
           // orderBy('createdAt', 'desc'),
-          orderBy(sortField, sortDirection),
+          orderBy(sortConfig.field, sortConfig.direction),
           limit(PAGE_SIZE))
         
         // If we're going to a specific page that exists in our history
@@ -118,7 +77,8 @@ export default function DashboardPage() {
           const nextQ = query(
             collection(db, 'dashboardData'),
             where('userId', '==', currentUser.uid),
-            orderBy('createdAt', 'desc'),
+            orderBy(sortConfig.field, sortConfig.direction),
+            // orderBy('createdAt', 'desc'),
             startAfter(lastVisible),
             limit(1))
           const nextSnapshot = await getDocs(nextQ);
@@ -150,16 +110,23 @@ export default function DashboardPage() {
       }
     };
     fetchData();
-  },  [currentUser, currentPage, sortField, sortDirection]); // Dependency on currentUser ensures fetch happens when the user is logged in
+  },  [currentUser, currentPage, sortConfig]); // Dependency on currentUser ensures fetch happens when the user is logged in
   const handleSort = (field) => {
-    if (field === sortField) {
-      // Toggle direction if clicking the same field
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      // Set new field and default to descending
-      setSortField(field);
-      setSortDirection('desc');
-    }
+    setSortConfig(prev => {
+      // If same field, toggle direction
+      if (prev.field === field) {
+        return {
+          field,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      }
+      // If different field, default to descending
+      return {
+        field,
+        direction: 'desc'
+      };
+    });
+    // Reset to first page when changing sort
     setCurrentPage(1);
     lastDocRefs.current = {};
   };
@@ -176,7 +143,50 @@ export default function DashboardPage() {
       setLastDoc(null);
     }
   };
-  
+  const columns = [
+    {
+      accessorKey: 'month',
+      header: 'Month',
+    },
+    {
+      accessorKey: 'sales',
+      header: ({ column }) => (
+        <button
+          className="flex items-center hover:text-blue-600"
+          onClick={() => handleSort('sales')}
+        >
+          Sales ($)
+          {sortConfig.field === 'sales' && (
+            <span className="ml-1">
+              {sortConfig.direction === 'asc' ? '↑' : '↓'}
+            </span>
+          )}
+        </button>
+      ),
+      cell: ({ row }) => (
+        <span className="font-medium">
+          {new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+          }).format(row.getValue('sales'))}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'users',
+      header: 'Active Users',
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Date Recorded',
+      cell: ({ row }) => (
+    
+      <span>
+      {row.getValue('createdAt') ? new Date(row.getValue('createdAt')).toDateString() : 'N/A'}
+    </span>
+      ),
+    }
+  ];
   if (!currentUser) {
     return (
       <div className="p-6">
