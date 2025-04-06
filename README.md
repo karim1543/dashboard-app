@@ -1,5 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Sales Analytics Dashboard
 
+
+A responsive dashboard displaying sales data with sorting and pagination capabilities.
+
+## ✨ Features
+
+- 🔢 **Pagination** - Load data in pages (3 records per page)
+- 🔼🔽 **Column Sorting** - Click headers to sort by sales/date
+- 📊 **Interactive Chart** - Visualize monthly sales trends
+- 🔒 **User-Specific Data** - Only shows records for logged-in user
+
+## 🛠 Tech Stack
+
+- **Frontend**: Next.js, Tailwind CSS
+- **Database**: Firebase Firestore
+- **Auth**: Firebase Authentication
+
+## 🔧 Setup
+
+1. **Firestore Indexes** *(required for sorting)*:
+   ```bash
+   Collection: dashboardData
+   Fields: userId (ASC), createdAt (DESC)
+   Fields: userId (ASC), sales (DESC)
+   Fields: userId (ASC), sales (ASC)
 ## Getting Started
 
 First, run the development server:
@@ -14,23 +38,3 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
