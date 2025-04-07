@@ -1,12 +1,12 @@
 // src/app/dashboard/page.js
 'use client';
-import { useState, useEffect,useRef } from 'react';
-import { collection, getDocs, query, where,limit, startAfter ,orderBy } from 'firebase/firestore';
+import { useState, useEffect, useRef } from 'react';
+import { collection, getDocs, query, where, limit, startAfter, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import SalesChart from '@/components/charts/LineChart';
 import { DataTable } from '@/components/data-table/DataTable';
-import { getAuth ,onAuthStateChanged } from 'firebase/auth';
-
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { Timestamp } from 'firebase/firestore';
 export default function DashboardPage() {
   const [chartData, setChartData] = useState(null);
   const [tableData, setTableData] = useState([]);
@@ -22,6 +22,10 @@ export default function DashboardPage() {
     field: 'createdAt',  // Default sort field
     direction: 'desc'    // Default sort direction
   });
+  const [dateFilter, setDateFilter] = useState({
+    startDate: null,
+    endDate: null
+  });
   const PAGE_SIZE = 3; // Number of items per page
   useEffect(() => {
     const auth = getAuth();
@@ -32,27 +36,50 @@ export default function DashboardPage() {
     setCurrentUser(user); // Set the currentUser state
     return () => unsubscribe();
   }, []);
-  
+
 
   useEffect(() => {
     if (!currentUser) return; // If no user is logged in, do not proceed
 
     const fetchData = async () => {
       try {
-        let q = query(
+        let queryConstraints = query(
           collection(db, 'dashboardData'),
           where('userId', '==', currentUser.uid),
-          // orderBy('createdAt', 'desc'),
+
           orderBy(sortConfig.field, sortConfig.direction),
           limit(PAGE_SIZE))
-        
+        const collectionRef = collection(db, 'dashboardData');
+
+        // 2. Build query constraints in correct order
+        const constraints = [
+          where('userId', '==', currentUser.uid)
+        ];
+
+        // Add date filters if they exist
+        if (dateFilter.startDate) {
+          constraints.push(where('createdAt', '>=', Timestamp.fromDate(new Date(dateFilter.startDate))));
+        }
+        if (dateFilter.endDate) {
+          constraints.push(where('createdAt', '<=', Timestamp.fromDate(new Date(dateFilter.endDate))));
+        }
+
+        // Add sorting
+        constraints.push(orderBy(sortConfig.field, sortConfig.direction));
+
+        // 3. Create the base query with all constraints
+        let q = query(collectionRef, ...constraints);
         // If we're going to a specific page that exists in our history
-        if (lastDocRefs.current[currentPage - 1]) {
+        // if (lastDocRefs.current[currentPage - 1]) {
+        //   q = query(q, startAfter(lastDocRefs.current[currentPage - 1]));
+        // }
+        if (currentPage > 1 && lastDocRefs.current[currentPage - 1]) {
           q = query(q, startAfter(lastDocRefs.current[currentPage - 1]));
         }
-       
+        q = query(q, limit(PAGE_SIZE));
 
-        const querySnapshot = await getDocs(q);      
+
+        const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) {
           setTableData([]);
           setHasNext(false);
@@ -78,7 +105,7 @@ export default function DashboardPage() {
             collection(db, 'dashboardData'),
             where('userId', '==', currentUser.uid),
             orderBy(sortConfig.field, sortConfig.direction),
-            // orderBy('createdAt', 'desc'),
+
             startAfter(lastVisible),
             limit(1))
           const nextSnapshot = await getDocs(nextQ);
@@ -99,9 +126,10 @@ export default function DashboardPage() {
             tension: 0.4
           }]
         };
+
         console.log('Formatted Chart Data:', formattedChartData);
         setChartData(formattedChartData);
-        setTableData(filteredData);    
+        setTableData(filteredData);
       } catch (err) {
         console.error('Error:', err);
         setError(err.message);
@@ -110,7 +138,7 @@ export default function DashboardPage() {
       }
     };
     fetchData();
-  },  [currentUser, currentPage, sortConfig]); // Dependency on currentUser ensures fetch happens when the user is logged in
+  }, [currentUser, currentPage, sortConfig, dateFilter]); // Dependency on currentUser ensures fetch happens when the user is logged in
   const handleSort = (field) => {
     setSortConfig(prev => {
       // If same field, toggle direction
@@ -139,7 +167,7 @@ export default function DashboardPage() {
   const loadPreviousPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1);
-    
+
       setLastDoc(null);
     }
   };
@@ -180,10 +208,10 @@ export default function DashboardPage() {
       accessorKey: 'createdAt',
       header: 'Date Recorded',
       cell: ({ row }) => (
-    
-      <span>
-      {row.getValue('createdAt') ? new Date(row.getValue('createdAt')).toDateString() : 'N/A'}
-    </span>
+
+        <span>
+          {row.getValue('createdAt') ? new Date(row.getValue('createdAt')).toDateString() : 'N/A'}
+        </span>
       ),
     }
   ];
@@ -204,7 +232,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-       
+
       </div>
     );
   }
@@ -222,25 +250,26 @@ export default function DashboardPage() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border-l-4 border-red-400 p-4">
-          <div className="flex">    
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-red-700">
-                {error}
-              </p>
-            </div>
+          <div className="flex">
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-red-700">
+              {error}
+            </p>
           </div>
         </div>
+      </div>
     );
   }
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Sales Dashboard</h1>
+    <div className="p-4 md:p-6 min-h-screen">
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold">Sales Dashboard</h1>
         <div className="text-sm text-gray-500">
           Welcome, {currentUser.email}
         </div>
-      </div>     
+      </div>
       <div className="bg-white p-4 rounded-lg shadow mb-8">
         <h2 className="text-lg font-semibold mb-4">Monthly Sales Trend</h2>
         {chartData ? (
@@ -249,11 +278,11 @@ export default function DashboardPage() {
           <p className="text-gray-500 py-8 text-center">No sales data available</p>
         )}
       </div>
-      <div className="bg-white p-4 rounded-lg shadow">
+      <div className="bg-white p-4 rounded-lg shadow mb-6 overflow-x-auto">
         <h2 className="text-lg font-semibold mb-4">Sales Records</h2>
         {tableData.length > 0 ? (
-          <DataTable 
-            columns={columns} 
+          <DataTable
+            columns={columns}
             data={tableData}
             className="border rounded-lg overflow-hidden"
           />
@@ -261,31 +290,69 @@ export default function DashboardPage() {
           <p className="text-gray-500 py-8 text-center">No records found</p>
         )}
       </div>
-      <div className="flex justify-center items-center mt-4 space-x-4">
-        <button 
-          onClick={loadPreviousPage} 
+
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+
+      </div>
+      <div className="flex-1 overflow-y-auto mb-4">
+
+        <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6 py-2">
+
+          <div className="w-full md:w-auto">
+            <label className="block text-sm font-medium mb-1">Start Date</label>
+            <input
+              type="date"
+              onChange={(e) => setDateFilter(prev => ({
+                ...prev,
+                startDate: e.target.value ? new Date(e.target.value) : null
+              }))}
+              className="border rounded px-3 py-3 w-full"
+            />
+          </div>
+        </div>
+        <div className="w-full md:w-auto">
+          <label className="block text-sm font-medium mb-1">End Date</label>
+          <input
+            type="date"
+            onChange={(e) => setDateFilter(prev => ({
+              ...prev,
+              endDate: e.target.value ? new Date(e.target.value) : null
+            }))}
+            className="border rounded px-3 py-2 w-full"
+          />
+        </div>
+        <button
+          onClick={() => setDateFilter({ startDate: null, endDate: null })}
+          className="w-full sm:w-auto px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 mt-auto"
+        >
+          Clear Filters
+        </button>
+
+        </div>
+      <div className="flex flex-col xs:flex-row justify-center items-center gap-3 py-3 bg-white sticky bottom-0 border-t">
+        <button
+          onClick={loadPreviousPage}
           
           disabled={!hasPrevious}
-          className={`px-4 py-2 rounded-md ${
-            hasPrevious 
-              ? 'bg-blue-500 text-white hover:bg-blue-700' 
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          className={`px-4 py-2 rounded-md w-full xs:w-auto ${hasPrevious
+            ? 'bg-blue-500 text-white hover:bg-blue-700'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
-        >
+          >
           Previous
         </button>
         <span className="px-4 py-2">Page {currentPage}</span>
-        <button 
-          onClick={loadNextPage} 
+        <button
+          onClick={loadNextPage}
           disabled={!hasNext}
-          className={`px-4 py-2 rounded-md ${
-            hasNext 
-              ? 'bg-blue-500 text-white hover:bg-blue-700' 
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          className={`px-4 py-2 rounded-md w-full xs:w-auto ${hasNext
+            ? 'bg-blue-500 text-white hover:bg-blue-700'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
-        >
+          >
           Next
         </button>
+
       </div>
     </div>
   );
