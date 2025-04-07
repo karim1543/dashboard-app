@@ -1,4 +1,4 @@
-// src/app/dashboard/page.js
+
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, where, limit, startAfter, orderBy } from 'firebase/firestore';
@@ -7,40 +7,45 @@ import SalesChart from '@/components/charts/LineChart';
 import { DataTable } from '@/components/data-table/DataTable';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { Timestamp } from 'firebase/firestore';
+import { redirect } from 'next/navigation';
 export default function DashboardPage() {
   const [chartData, setChartData] = useState(null);
   const [tableData, setTableData] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null); // For authenticated user
+  const [currentUser, setCurrentUser] = useState(null); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1); // Track the current page
+  const [currentPage, setCurrentPage] = useState(1); 
   const [lastDoc, setLastDoc] = useState(null);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   const lastDocRefs = useRef({});
+  
   const [sortConfig, setSortConfig] = useState({
-    field: 'createdAt',  // Default sort field
-    direction: 'desc'    // Default sort direction
+    field: 'createdAt',  
+    direction: 'desc'    
   });
   const [dateFilter, setDateFilter] = useState({
     startDate: null,
     endDate: null
   });
-  const PAGE_SIZE = 3; // Number of items per page
+  const PAGE_SIZE = 3; 
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
+      if (user) {
+        setCurrentUser(user); 
+      }
+      else {
+        setCurrentUser(null); 
+        redirect('/login'); 
+      }
     });
-    const user = auth.currentUser; // Get the currently logged-in user
-    setCurrentUser(user); // Set the currentUser state
+    const user = auth.currentUser; 
+    setCurrentUser(user); 
     return () => unsubscribe();
-  }, []);
-
-
+  }, [currentUser]);
   useEffect(() => {
-    if (!currentUser) return; // If no user is logged in, do not proceed
-
+    if (!currentUser)  return;
     const fetchData = async () => {
       try {
         let queryConstraints = query(
@@ -49,42 +54,27 @@ export default function DashboardPage() {
 
           orderBy(sortConfig.field, sortConfig.direction),
           limit(PAGE_SIZE))
-        const collectionRef = collection(db, 'dashboardData');
-
-        // 2. Build query constraints in correct order
+        const collectionRef = collection(db, 'dashboardData');       
         const constraints = [
           where('userId', '==', currentUser.uid)
-        ];
-
-        // Add date filters if they exist
+        ];    
         if (dateFilter.startDate) {
           constraints.push(where('createdAt', '>=', Timestamp.fromDate(new Date(dateFilter.startDate))));
         }
         if (dateFilter.endDate) {
           constraints.push(where('createdAt', '<=', Timestamp.fromDate(new Date(dateFilter.endDate))));
-        }
-
-        // Add sorting
-        constraints.push(orderBy(sortConfig.field, sortConfig.direction));
-
-        // 3. Create the base query with all constraints
-        let q = query(collectionRef, ...constraints);
-        // If we're going to a specific page that exists in our history
-        // if (lastDocRefs.current[currentPage - 1]) {
-        //   q = query(q, startAfter(lastDocRefs.current[currentPage - 1]));
-        // }
+        }       
+        constraints.push(orderBy(sortConfig.field, sortConfig.direction));      
+        let q = query(collectionRef, ...constraints);  
         if (currentPage > 1 && lastDocRefs.current[currentPage - 1]) {
           q = query(q, startAfter(lastDocRefs.current[currentPage - 1]));
         }
         q = query(q, limit(PAGE_SIZE));
-
-
         const querySnapshot = await getDocs(q);
         if (querySnapshot.empty) {
           setTableData([]);
           setHasNext(false);
           if (currentPage > 1) {
-            // If we hit an empty page but we're not on page 1, go back
             setCurrentPage(prev => prev - 1);
           }
           return;
@@ -133,28 +123,29 @@ export default function DashboardPage() {
       } catch (err) {
         console.error('Error:', err);
         setError(err.message);
+        
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [currentUser, currentPage, sortConfig, dateFilter]); // Dependency on currentUser ensures fetch happens when the user is logged in
+  }, [currentUser, currentPage, sortConfig, dateFilter]); 
+  const handleLogin =()=>{
+    redirect('/login')
+  }
   const handleSort = (field) => {
     setSortConfig(prev => {
-      // If same field, toggle direction
       if (prev.field === field) {
         return {
           field,
           direction: prev.direction === 'asc' ? 'desc' : 'asc'
         };
       }
-      // If different field, default to descending
       return {
         field,
         direction: 'desc'
       };
     });
-    // Reset to first page when changing sort
     setCurrentPage(1);
     lastDocRefs.current = {};
   };
@@ -216,7 +207,10 @@ export default function DashboardPage() {
     }
   ];
   if (!currentUser) {
+    
     return (
+      
+
       <div className="p-6">
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
           <div className="flex">
@@ -229,11 +223,17 @@ export default function DashboardPage() {
               <p className="text-sm text-yellow-700">
                 You must be logged in to view the dashboard.
               </p>
+              <button
+                onClick={handleLogin}
+                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
+                >
+                  Go to login page
+              </button>
             </div>
           </div>
         </div>
-
-      </div>
+ 
+      </div>  
     );
   }
   if (loading) {
@@ -329,7 +329,7 @@ export default function DashboardPage() {
         </button>
 
         </div>
-      <div className="flex flex-col xs:flex-row justify-center items-center gap-3 py-3 bg-white sticky bottom-0 border-t">
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 py-3 bg-white sticky bottom-0 border-t">
         <button
           onClick={loadPreviousPage}
           

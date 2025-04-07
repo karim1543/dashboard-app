@@ -17,6 +17,15 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+ 
+}
+@media (max-height: 600px) {
+  .chart-container {
+    height: 180px !important;
+  }
+  .table-container {
+    max-height: calc(100vh - 420px) !important;
+  }
 }
 
 body {

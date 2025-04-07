@@ -9,7 +9,9 @@ A responsive dashboard displaying sales data with sorting and pagination capabil
 - 🔼🔽 **Column Sorting** - Click headers to sort by sales/date
 - 📊 **Interactive Chart** - Visualize monthly sales trends
 - 🔒 **User-Specific Data** - Only shows records for logged-in user
-
+- **Date Range Filtering**
+  - Filter records by "Date Recorded" range
+  - Clear filters with one click
 ## 🛠 Tech Stack
 
 - **Frontend**: Next.js, Tailwind CSS

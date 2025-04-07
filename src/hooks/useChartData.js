@@ -14,7 +14,7 @@ export default function useChartData() {
       const fetchData = async () => {
         try {
           const querySnapshot = await getDocs(collection(db, 'salesData'));
-          // ... rest of your data processing
+
         } catch (error) {
           console.error("Error fetching data:", error);
         }
