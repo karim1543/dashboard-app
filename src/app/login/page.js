@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch ,useSelector} from "react-redux";
 import { login } from '../auth/authSlice'
 import { useRouter } from "next/navigation";
 
@@ -9,7 +9,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const dispatch = useDispatch();
   const router = useRouter();
-
+  const { status, error } = useSelector((state) => state.auth);
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -24,6 +24,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
+        {status === "failed" && error && (
+          <p className="text-red-500 text-center mb-4">Wrong email or Password Entered!</p>
+        )}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-gray-700 mb-2" htmlFor="email">

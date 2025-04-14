@@ -14,7 +14,7 @@ const dataSlice = createSlice({
     status: 'idle'
   },
   reducers: {},
-  extraReducers: (builder) => {
+  extraReducers: (builder) => { 
     builder
       .addCase(fetchData.pending, (state) => {
         state.status = 'loading';

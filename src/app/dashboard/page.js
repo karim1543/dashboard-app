@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, where, limit, startAfter, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
+import { useDispatch, useSelector } from 'react-redux'; 
+import { fetchData } from '@/store/dataSlice';
 import SalesChart from '@/components/charts/LineChart';
 import { DataTable } from '@/components/data-table/DataTable';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -19,7 +21,7 @@ export default function DashboardPage() {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   const lastDocRefs = useRef({});
-  
+  const dispatch = useDispatch();
   const [sortConfig, setSortConfig] = useState({
     field: 'createdAt',  
     direction: 'desc'    
@@ -29,21 +31,12 @@ export default function DashboardPage() {
     endDate: null
   });
   const PAGE_SIZE = 3; 
+  const { items: tableData, status, error: fetchError } = useSelector((state) => state.data);
   useEffect(() => {
     const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setCurrentUser(user); 
-      }
-      else {
-        setCurrentUser(null); 
-        redirect('/login'); 
-      }
-    });
     const user = auth.currentUser; 
     setCurrentUser(user); 
-    return () => unsubscribe();
-  }, [currentUser]);
+  }, []);
   useEffect(() => {
     if (!currentUser)  return;
     const fetchData = async () => {
@@ -329,7 +322,7 @@ export default function DashboardPage() {
         </button>
 
         </div>
-      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 py-3 bg-white sticky bottom-0 border-t">
+      <div className="flex flex-row justify-center items-center gap-3 py-3 bg-white sticky bottom-0 border-t">
         <button
           onClick={loadPreviousPage}
           
