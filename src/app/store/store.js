@@ -7,7 +7,15 @@ export const makeStore = () => {
     reducer: {
       auth: authReducer,
       data: dataReducer
-    }
+    },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware({
+        
+          serializableCheck: {
+            ignoredActionPaths: ['payload.createdAt'],
+            ignoredPaths: ['data.items.createdAt'],
+        },
+      }),
   });
 };
 

@@ -7,19 +7,11 @@ import {
   flexRender
 } from '@tanstack/react-table'
 import { useState } from 'react'    
-export  function DataTable({ columns, data }) {
-  const [sorting, setSorting] = useState([]);
-  
+export  function DataTable({ columns, data }) {  
   const table = useReactTable({
     data,
     columns,
-    state: {
-      sorting
-    },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel()
+     getCoreRowModel: getCoreRowModel(),
   });
 
   return (

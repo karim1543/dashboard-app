@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, where, limit, startAfter, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { useDispatch, useSelector } from 'react-redux'; 
-import { fetchData } from '@/store/dataSlice';
+import { fetchData } from '../data/dataSlice'
 import SalesChart from '@/components/charts/LineChart';
 import { DataTable } from '@/components/data-table/DataTable';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -17,7 +17,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1); 
-  const [lastDoc, setLastDoc] = useState(null);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   const lastDocRefs = useRef({});
@@ -31,7 +30,7 @@ export default function DashboardPage() {
     endDate: null
   });
   const PAGE_SIZE = 3; 
-  const { items: tableData, status, error: fetchError } = useSelector((state) => state.data);
+  const { lastDocId } = useSelector((state) => state.data);
   useEffect(() => {
     const auth = getAuth();
     const user = auth.currentUser; 
@@ -39,18 +38,20 @@ export default function DashboardPage() {
   }, []);
   useEffect(() => {
     if (!currentUser)  return;
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
-        let queryConstraints = query(
-          collection(db, 'dashboardData'),
-          where('userId', '==', currentUser.uid),
-
-          orderBy(sortConfig.field, sortConfig.direction),
-          limit(PAGE_SIZE))
-        const collectionRef = collection(db, 'dashboardData');       
+         
+         dispatch(fetchData({
+          userId: currentUser.uid,
+          sortField: sortConfig.field,
+          sortDirection: sortConfig.direction,
+          pageSize: PAGE_SIZE,
+          startAfterDoc: lastDocId, // *** Pass lastDoc for pagination ***
+        }));
+        const collectionRef = collection(db, 'dashboardData');
         const constraints = [
-          where('userId', '==', currentUser.uid)
-        ];    
+            where('userId', '==', currentUser.uid)
+           ];   
         if (dateFilter.startDate) {
           constraints.push(where('createdAt', '>=', Timestamp.fromDate(new Date(dateFilter.startDate))));
         }
@@ -80,7 +81,8 @@ export default function DashboardPage() {
           return {
             id: doc.id,
             ...docData,
-            createdAt: docData.createdAt ? new Date(docData.createdAt.seconds * 1000).toDateString() : 'N/A'
+          
+             createdAt: docData.createdAt ? new Date(docData.createdAt.seconds * 1000).toDateString() : 'N/A'
           };
         });
         if (querySnapshot.docs.length === PAGE_SIZE) {
@@ -121,7 +123,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     };
-    fetchData();
+    loadData();
   }, [currentUser, currentPage, sortConfig, dateFilter]); 
   const handleLogin =()=>{
     redirect('/login')
@@ -152,7 +154,6 @@ export default function DashboardPage() {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1);
 
-      setLastDoc(null);
     }
   };
   const columns = [
