@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, getDocs, query, where, limit, startAfter, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
-import { useDispatch, useSelector } from 'react-redux'; 
+import { useDispatch, useSelector } from 'react-redux';
 import { fetchData } from '../data/dataSlice'
 import SalesChart from '@/components/charts/LineChart';
 import { DataTable } from '@/components/data-table/DataTable';
@@ -13,35 +13,35 @@ import { redirect } from 'next/navigation';
 export default function DashboardPage() {
   const [chartData, setChartData] = useState(null);
   const [tableData, setTableData] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null); 
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1); 
+  const [currentPage, setCurrentPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   const lastDocRefs = useRef({});
   const dispatch = useDispatch();
   const [sortConfig, setSortConfig] = useState({
-    field: 'createdAt',  
-    direction: 'desc'    
+    field: 'createdAt',
+    direction: 'desc'
   });
   const [dateFilter, setDateFilter] = useState({
     startDate: null,
     endDate: null
   });
-  const PAGE_SIZE = 3; 
+  const PAGE_SIZE = 3;
   const { lastDocId } = useSelector((state) => state.data);
   useEffect(() => {
     const auth = getAuth();
-    const user = auth.currentUser; 
-    setCurrentUser(user); 
+    const user = auth.currentUser;
+    setCurrentUser(user);
   }, []);
   useEffect(() => {
-    if (!currentUser)  return;
+    if (!currentUser) return;
     const loadData = async () => {
       try {
-         
-         dispatch(fetchData({
+
+        dispatch(fetchData({
           userId: currentUser.uid,
           sortField: sortConfig.field,
           sortDirection: sortConfig.direction,
@@ -50,16 +50,16 @@ export default function DashboardPage() {
         }));
         const collectionRef = collection(db, 'dashboardData');
         const constraints = [
-            where('userId', '==', currentUser.uid)
-           ];   
+          where('userId', '==', currentUser.uid)
+        ];
         if (dateFilter.startDate) {
           constraints.push(where('createdAt', '>=', Timestamp.fromDate(new Date(dateFilter.startDate))));
         }
         if (dateFilter.endDate) {
           constraints.push(where('createdAt', '<=', Timestamp.fromDate(new Date(dateFilter.endDate))));
-        }       
-        constraints.push(orderBy(sortConfig.field, sortConfig.direction));      
-        let q = query(collectionRef, ...constraints);  
+        }
+        constraints.push(orderBy(sortConfig.field, sortConfig.direction));
+        let q = query(collectionRef, ...constraints);
         if (currentPage > 1 && lastDocRefs.current[currentPage - 1]) {
           q = query(q, startAfter(lastDocRefs.current[currentPage - 1]));
         }
@@ -81,8 +81,8 @@ export default function DashboardPage() {
           return {
             id: doc.id,
             ...docData,
-          
-             createdAt: docData.createdAt ? new Date(docData.createdAt.seconds * 1000).toDateString() : 'N/A'
+
+            createdAt: docData.createdAt ? new Date(docData.createdAt.seconds * 1000).toDateString() : 'N/A'
           };
         });
         if (querySnapshot.docs.length === PAGE_SIZE) {
@@ -118,14 +118,14 @@ export default function DashboardPage() {
       } catch (err) {
         console.error('Error:', err);
         setError(err.message);
-        
+
       } finally {
         setLoading(false);
       }
     };
     loadData();
-  }, [currentUser, currentPage, sortConfig, dateFilter]); 
-  const handleLogin =()=>{
+  }, [currentUser, currentPage, sortConfig, dateFilter]);
+  const handleLogin = () => {
     redirect('/login')
   }
   const handleSort = (field) => {
@@ -201,9 +201,9 @@ export default function DashboardPage() {
     }
   ];
   if (!currentUser) {
-    
+
     return (
-      
+
 
       <div className="p-6">
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
@@ -220,14 +220,14 @@ export default function DashboardPage() {
               <button
                 onClick={handleLogin}
                 className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700"
-                >
-                  Go to login page
+              >
+                Go to login page
               </button>
             </div>
           </div>
         </div>
- 
-      </div>  
+
+      </div>
     );
   }
   if (loading) {
@@ -256,7 +256,7 @@ export default function DashboardPage() {
     );
   }
   return (
-    <div className="p-4 md:p-6 min-h-screen">
+    <div className="p-4 md:p-6 flex flex-col min-h-screen">
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-2">
         <h1 className="text-xl sm:text-2xl font-bold">Sales Dashboard</h1>
@@ -290,20 +290,18 @@ export default function DashboardPage() {
       </div>
       <div className="flex-1 overflow-y-auto mb-4">
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6 py-2">
-
-          <div className="w-full md:w-auto">
-            <label className="block text-sm font-medium mb-1">Start Date</label>
-            <input
-              type="date"
-              onChange={(e) => setDateFilter(prev => ({
-                ...prev,
-                startDate: e.target.value ? new Date(e.target.value) : null
-              }))}
-              className="border rounded px-3 py-3 w-full"
-            />
-          </div>
+        <div className="w-full md:w-auto">
+          <label className="block text-sm font-medium mb-1">Start Date</label>
+          <input
+            type="date"
+            onChange={(e) => setDateFilter(prev => ({
+              ...prev,
+              startDate: e.target.value ? new Date(e.target.value) : null
+            }))}
+            className="border rounded px-3 py-3 w-full"
+          />
         </div>
+            
         <div className="w-full md:w-auto">
           <label className="block text-sm font-medium mb-1">End Date</label>
           <input
@@ -322,17 +320,17 @@ export default function DashboardPage() {
           Clear Filters
         </button>
 
-        </div>
+      </div>
       <div className="flex flex-row justify-center items-center gap-3 py-3 bg-white sticky bottom-0 border-t">
         <button
           onClick={loadPreviousPage}
-          
+
           disabled={!hasPrevious}
           className={`px-4 py-2 rounded-md w-full xs:w-auto ${hasPrevious
             ? 'bg-blue-500 text-white hover:bg-blue-700'
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-          >
+            }`}
+        >
           Previous
         </button>
         <span className="px-4 py-2">Page {currentPage}</span>
@@ -342,8 +340,8 @@ export default function DashboardPage() {
           className={`px-4 py-2 rounded-md w-full xs:w-auto ${hasNext
             ? 'bg-blue-500 text-white hover:bg-blue-700'
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-          >
+            }`}
+        >
           Next
         </button>
 
